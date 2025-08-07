@@ -1,0 +1,18 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": ".NET Core Launch (OnZeroId.Api)",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build",
+			"program": "${workspaceFolder}/src/OnZeroId.Api/bin/Debug/net9.0/OnZeroId.Api.dll",
+			"args": [],
+			"cwd": "${workspaceFolder}/src/OnZeroId.Api",
+			"stopAtEntry": false,
+			"env": {
+				"ASPNETCORE_ENVIRONMENT": "Development"
+			}
+		}
+	]
+}

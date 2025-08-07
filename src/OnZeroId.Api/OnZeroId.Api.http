@@ -1,0 +1,36 @@
+
+@Api_HostAddress = http://localhost:5176
+
+### 測試註冊 API
+POST {{Api_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "username": "testuser",
+  "password": "Test1234!"
+}
+
+###
+
+### TOTP 註冊
+POST {{Api_HostAddress}}/api/totp/generate
+Content-Type: application/json
+
+{
+  "userId": "7750aa05-884a-4e8b-a6f1-9925dc9156bf"
+}
+
+### TOTP 驗證
+POST {{Api_HostAddress}}/api/totp/validate
+Content-Type: application/json
+
+{
+  "userId": "7750aa05-884a-4e8b-a6f1-9925dc9156bf",
+  "code": "123321"
+}
+
+### 獲取天氣預報
+
+GET {{Api_HostAddress}}/weatherforecast/
+Accept: application/json
