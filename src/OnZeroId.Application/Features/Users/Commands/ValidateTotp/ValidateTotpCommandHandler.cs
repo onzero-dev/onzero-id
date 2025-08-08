@@ -1,13 +1,15 @@
 
-using MediatR;
+
 using OnZeroId.Application.DTOs;
 using OnZeroId.Domain.Interfaces.Repositories;
 using OnZeroId.Application.Interfaces;
 using OtpNet;
+using Wolverine.Attributes;
 
 namespace OnZeroId.Application.Features.Users.Commands.ValidateTotp;
 
-public class ValidateTotpCommandHandler : IRequestHandler<ValidateTotpCommand, ValidateTotpResponse>
+[WolverineHandler]
+public class ValidateTotpCommandHandler
 {
     private readonly ITotpKeyRepository _totpKeyRepository;
     private readonly IMinioService _minioService;
@@ -17,7 +19,7 @@ public class ValidateTotpCommandHandler : IRequestHandler<ValidateTotpCommand, V
         _minioService = minioService;
     }
 
-    public async Task<ValidateTotpResponse> Handle(ValidateTotpCommand command, CancellationToken cancellationToken)
+    public async Task<ValidateTotpResponse> HandleAsync(ValidateTotpCommand command, CancellationToken cancellationToken)
     {
         var key = await _totpKeyRepository.GetByUserIdAsync(command.Request.UserId, cancellationToken).ConfigureAwait(false);
         if (key == null)

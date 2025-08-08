@@ -1,6 +1,17 @@
 using OnZeroId.Infrastructure;
 using OnZeroId.Application;
+using Wolverine;
+using OnZeroId.Application.Features.Users.Commands.GenerateTotp;
+using OnZeroId.Application.Features.Users.Commands.ValidateTotp;
+using OnZeroId.Application.Features.Users.Commands.RegisterUser;
+
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseWolverine(opt =>
+{
+    opt.Discovery.IncludeType<GenerateTotpCommandHandler>();
+    opt.Discovery.IncludeType<ValidateTotpCommandHandler>();
+    opt.Discovery.IncludeType<RegisterUserCommandHandler>();
+});
 
 // Add services to the container.
 builder.Services.AddControllers();

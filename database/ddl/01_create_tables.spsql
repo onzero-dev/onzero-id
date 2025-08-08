@@ -1,0 +1,123 @@
+-- =================================================================
+-- OnZeroId Project - Database Schema
+-- Version: 1.0
+-- Author: Gemini
+-- Description: This script creates all necessary tables, indexes,
+--              and relations for the OnZeroId identity server.
+-- =================================================================
+
+-- Drop tables in reverse order of creation to avoid foreign key conflicts
+DROP TABLE IF EXISTS "passkeys";
+DROP TABLE IF EXISTS "oauth_accounts";
+DROP TABLE IF EXISTS "totp_keys";
+DROP TABLE IF EXISTS "users";
+
+-- =================================================================
+-- Table: users
+-- Description: Stores the core user account information.
+-- =================================================================
+CREATE TABLE "users" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "email" VARCHAR(128) NOT NULL UNIQUE,
+    "username" VARCHAR(64),
+    "password_hash" TEXT,
+    "password_set_at" TIMESTAMP WITH TIME ZONE,
+    "email_verified_at" TIMESTAMP WITH TIME ZONE,
+    "locked_out_until" TIMESTAMP WITH TIME ZONE,
+    "is_active" BOOLEAN NOT NULL DEFAULT TRUE,
+    "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index on email for fast lookups during login and registration.
+CREATE INDEX "idx_users_email" ON "users" ("email");
+
+COMMENT ON TABLE "users" IS 'Stores core user account information.';
+COMMENT ON COLUMN "users"."email" IS 'Unique identifier for user login and communication.';
+COMMENT ON COLUMN "users"."password_hash" IS 'Salted and hashed password. Modern algorithms (e.g., Argon2, BCrypt) embed the salt within the hash string.';
+COMMENT ON COLUMN "users"."email_verified_at" IS 'Timestamp when the user''s email was verified. NULL indicates not verified.';
+COMMENT ON COLUMN "users"."locked_out_until" IS 'Timestamp until which the account is locked out due to failed login attempts. NULL indicates not locked.';
+
+
+-- =================================================================
+-- Table: oauth_accounts
+-- Description: Stores associations with third-party OAuth 2.0 providers.
+-- =================================================================
+CREATE TABLE "oauth_accounts" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL,
+    "provider" VARCHAR(32) NOT NULL,
+    "sub" VARCHAR(255) NOT NULL,
+    "profile" JSONB,
+    "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- Constraints
+    CONSTRAINT "fk_oauth_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE,
+    UNIQUE ("provider", "sub"),
+    UNIQUE ("user_id", "provider")
+);
+
+COMMENT ON TABLE "oauth_accounts" IS 'Stores associations with third-party OAuth 2.0 providers like Google, GitHub, etc.';
+COMMENT ON COLUMN "oauth_accounts"."sub" IS 'The unique subject/user ID returned by the OAuth provider.';
+COMMENT ON CONSTRAINT "fk_oauth_user" ON "oauth_accounts" IS 'Links the OAuth account to a primary user account.';
+COMMENT ON CONSTRAINT "oauth_accounts_provider_sub_key" ON "oauth_accounts" IS 'Ensures a unique combination of provider and subject ID.';
+COMMENT ON CONSTRAINT "oauth_accounts_user_id_provider_key" ON "oauth_accounts" IS 'Ensures a user can only link one account per provider.';
+
+
+-- =================================================================
+-- Table: passkeys
+-- Description: Stores user Passkey (WebAuthn / FIDO2) credentials.
+-- =================================================================
+CREATE TABLE "passkeys" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL,
+    "credential_id" BYTEA NOT NULL UNIQUE,
+    "public_key" BYTEA NOT NULL,
+    "name" VARCHAR(128),
+    "counter" INTEGER NOT NULL DEFAULT 0,
+    "aaguid" VARCHAR(36),
+    "device_type" VARCHAR(32),
+    "transports" TEXT[],
+    "backed_up" BOOLEAN NOT NULL DEFAULT FALSE,
+    "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- Constraints
+    CONSTRAINT "fk_passkey_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
+);
+
+-- Index on user_id for quickly retrieving all passkeys for a user.
+CREATE INDEX "idx_passkeys_user_id" ON "passkeys" ("user_id");
+
+COMMENT ON TABLE "passkeys" IS 'Stores user Passkey (WebAuthn/FIDO2) credentials.';
+COMMENT ON COLUMN "passkeys"."credential_id" IS 'The raw, unique credential ID for the passkey.';
+COMMENT ON COLUMN "passkeys"."public_key" IS 'The public key of the credential in COSE format.';
+COMMENT ON COLUMN "passkeys"."counter" IS 'Signature counter used to prevent replay attacks.';
+
+
+-- =================================================================
+-- Table: totp_keys
+-- Description: Stores user TOTP (Time-based One-Time Password) settings.
+-- =================================================================
+CREATE TABLE "totp_keys" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL UNIQUE,
+    "secret" TEXT NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT FALSE,
+    "issuer" VARCHAR(64),
+    "label" VARCHAR(128),
+    "last_used_at" TIMESTAMP WITH TIME ZONE,
+    "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- Constraints
+    CONSTRAINT "fk_totp_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
+);
+
+-- Index on user_id for fast lookups.
+CREATE INDEX "idx_totp_keys_user_id" ON "totp_keys" ("user_id");
+
+COMMENT ON TABLE "totp_keys" IS 'Stores user TOTP settings for two-factor authentication.';
+COMMENT ON COLUMN "totp_keys"."secret" IS 'The TOTP secret key. MUST be encrypted at the application layer before being stored.';
+COMMENT ON COLUMN "totp_keys"."is_active" IS 'Indicates if TOTP is enabled and verified for the user.';
+COMMENT ON CONSTRAINT "totp_keys_user_id_key" ON "totp_keys" IS 'Ensures a user can only have one active TOTP setup.';
+

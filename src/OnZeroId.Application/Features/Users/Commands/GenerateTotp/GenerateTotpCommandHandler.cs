@@ -1,13 +1,14 @@
-using MediatR;
 using OnZeroId.Application.DTOs;
 using OnZeroId.Application.Interfaces;
 using OnZeroId.Domain.Entities;
 using OnZeroId.Domain.Interfaces.Repositories;
 using OtpNet;
+using Wolverine.Attributes;
 
 namespace OnZeroId.Application.Features.Users.Commands.GenerateTotp;
 
-public class GenerateTotpCommandHandler : IRequestHandler<GenerateTotpCommand, GenerateTotpResponse>
+[WolverineHandler]
+public class GenerateTotpCommandHandler
 {
     private readonly IMinioService _minioService;
     private readonly IQrCodeService _qrCodeService;
@@ -23,7 +24,7 @@ public class GenerateTotpCommandHandler : IRequestHandler<GenerateTotpCommand, G
         _totpKeyRepository = totpKeyRepository;
     }
 
-    public async Task<GenerateTotpResponse> Handle(GenerateTotpCommand command, CancellationToken cancellationToken)
+    public async Task<GenerateTotpResponse> HandleAsync(GenerateTotpCommand command, CancellationToken cancellationToken)
     {
         // 1. 產生 TOTP Secret (Base32)
         var secretBytes = KeyGeneration.GenerateRandomKey(20);

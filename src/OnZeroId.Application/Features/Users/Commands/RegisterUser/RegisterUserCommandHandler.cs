@@ -1,12 +1,15 @@
-using MediatR;
+
 using OnZeroId.Domain.Interfaces.Repositories;
 using OnZeroId.Domain.Entities;
 using OnZeroId.Application.DTOs;
 using AutoMapper;
+using System.Security.Cryptography;
+using Wolverine.Attributes;
 
 namespace OnZeroId.Application.Features.Users.Commands.RegisterUser;
 
-public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, UserDto>
+[WolverineHandler]
+public class RegisterUserCommandHandler
 {
     private readonly IUserRepository _userRepository;
     private readonly IMapper _mapper;
@@ -17,7 +20,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, U
         _mapper = mapper;
     }
 
-    public async Task<UserDto> Handle(RegisterUserCommand command, CancellationToken cancellationToken)
+    public async Task<UserDto> HandleAsync(RegisterUserCommand command, CancellationToken cancellationToken)
     {
         var existing = await _userRepository.GetByEmailAsync(command.Request.Email, cancellationToken).ConfigureAwait(false);
         if (existing != null)
@@ -41,7 +44,12 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, U
 
     private string HashPassword(string password)
     {
-        // TODO: 實作安全雜湊
-        return password;
+        // 使用 PBKDF2 (HMACSHA256) 產生安全雜湊，格式: base64(salt):base64(hash)
+        using var rng = RandomNumberGenerator.Create();
+        byte[] salt = new byte[16];
+        rng.GetBytes(salt);
+        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100_000, HashAlgorithmName.SHA256);
+        byte[] hash = pbkdf2.GetBytes(32);
+        return $"{Convert.ToBase64String(salt)}:{Convert.ToBase64String(hash)}";
     }
 }

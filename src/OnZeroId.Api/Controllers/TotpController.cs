@@ -1,4 +1,4 @@
-using MediatR;
+using Wolverine;
 using Microsoft.AspNetCore.Mvc;
 using OnZeroId.Application.DTOs;
 using OnZeroId.Application.Features.Users.Commands.GenerateTotp;
@@ -10,17 +10,17 @@ namespace OnZeroId.Api.Controllers;
 [Route("api/[controller]")]
 public class TotpController : ControllerBase
 {
-    private readonly IMediator _mediator;
-    public TotpController(IMediator mediator)
+    private readonly IMessageBus _bus;
+    public TotpController(IMessageBus bus)
     {
-        _mediator = mediator;
+        _bus = bus;
     }
 
     [HttpPost("generate")]
     public async Task<ActionResult<GenerateTotpResponse>> Generate([FromBody] GenerateTotpRequest request, CancellationToken cancellationToken)
     {
         var command = new GenerateTotpCommand { Request = request };
-        var result = await _mediator.Send(command, cancellationToken).ConfigureAwait(false);
+        var result = await _bus.InvokeAsync<GenerateTotpResponse>(command, cancellationToken);
         return Ok(result);
     }
 
@@ -28,7 +28,7 @@ public class TotpController : ControllerBase
     public async Task<ActionResult<ValidateTotpResponse>> Validate([FromBody] ValidateTotpRequest request, CancellationToken cancellationToken)
     {
         var command = new ValidateTotpCommand { Request = request };
-        var result = await _mediator.Send(command, cancellationToken).ConfigureAwait(false);
+        var result = await _bus.InvokeAsync<ValidateTotpResponse>(command, cancellationToken);
         return Ok(result);
     }
 }

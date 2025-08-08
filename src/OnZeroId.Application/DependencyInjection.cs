@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 using OnZeroId.Application.Mappings;
-using OnZeroId.Application.Options;
+
 
 namespace OnZeroId.Application;
 
@@ -15,10 +14,6 @@ public static class DependencyInjection
         {
             cfg.AddMaps(typeof(UserProfile).Assembly);
         });
-
-        // 註冊 MediatR
-        services.AddMediatR(cfg =>
-            cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
         return services;
     }
