@@ -95,7 +95,7 @@ The solution (`OnZeroId.sln`) must contain the following projects, and files mus
     -   Request/Response DTOs: `...Request`, `...Response`.
     -   Commands/Queries: `...Command`, `...Query`.
     -   Interfaces: `I...` (e.g., `IUserRepository`).
--   **CQRS:** Use the `MediatR` library to implement the CQRS pattern, separating read (Queries) and write (Commands) operations.
+-   **CQRS:** Use the `Wolverine` library to implement the CQRS pattern, separating read (Queries) and write (Commands) operations.
 
 ---
 
